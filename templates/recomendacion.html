@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chef IA - Recomendaciones</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="user-info">
+                <h2>Recomendaciones IA</h2>
+                <p>Tu {{ momento }} ideal está aquí</p>
+            </div>
+            <a href="/dashboard" class="btn-submit" style="background: rgba(255,255,255,0.1); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </header>
+        
+        <main class="main-content">
+            {% if p.sobrepasa_presupuesto %}
+            <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #ffeeba; font-size: 0.9rem; text-align: center;">
+                <i class="fas fa-info-circle"></i> Algunas opciones superan tu presupuesto ideal de S/ {{ "%.2f"|format(presupuesto) }}
+            </div>
+            {% endif %}
+
+            <div class="hero-plate" style="position: relative; --hero-color: {{ '#ffcccc' if p.sobrepasa_presupuesto else 'white' }};">
+                {% if p.sobrepasa_presupuesto %}
+                <span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; position: absolute; top: 20px; right: 20px;">
+                    <i class="fas fa-wallet"></i> PRESUPUESTO +
+                </span>
+                {% endif %}
+
+                <h1>{{ p.nombre_plato }}</h1>
+                <p>
+                    <i class="fas fa-fire"></i> {{ p.calorias_totales }} kcal | 
+                    <i class="fas fa-clock"></i> {{ p.tiempo_preparacion_min }} min |
+                    <i class="fas fa-wallet"></i> 
+                    <span style="color: var(--hero-color); font-weight: bold;">
+                        S/ {{ "%.2f"|format(p.costo_estimado) }}
+                    </span>
+                </p>
+                <br>
+                <a href="/receta/{{ p.id_comida }}?tipo=principal" class="btn-submit" style="background: var(--white); color: var(--primary);">
+                    Ver Receta Completa
+                </a>
+            </div>
+
+            <h2 style="margin-bottom: 2rem; color: var(--dark);">Otras opciones recomendadas</h2>
+            
+            <div class="sec-grid">
+                {% for plato in s %}
+                <a href="/receta/{{ plato.id_comida }}?tipo=secundario"
+                   class="sec-card" 
+                   style="text-decoration: none; color: inherit; position: relative; 
+                          --price-color: {{ '#ef4444' if plato.sobrepasa_presupuesto else '#10b981' }}; 
+                          --top-border: {{ '4px solid #10b981' if plato.es_saludable else '4px solid transparent' }};
+                          border-top: var(--top-border);">
+                    
+                    {% if plato.es_saludable %}
+                    <span style="position: absolute; top: 10px; right: 10px; background: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: bold;">
+                        <i class="fas fa-leaf"></i> SALUDABLE
+                    </span>
+                    {% endif %}
+
+                    <i class="fas fa-utensils" style="color: var(--primary); font-size: 2rem;"></i>
+                    <h3 style="margin: 1rem 0;">{{ plato.nombre_plato }}</h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 5px; color: #666; font-size: 0.9rem;">
+                        <span><i class="fas fa-fire"></i> {{ plato.calorias_totales }} kcal</span>
+                        
+                        <span style="color: var(--price-color); font-weight: 600;">
+                            <i class="fas fa-wallet"></i> S/ {{ "%.2f"|format(plato.costo_estimado) }}
+                            {% if plato.sobrepasa_presupuesto %}
+                            <i class="fas fa-arrow-up"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

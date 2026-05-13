@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef IA - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ESTILOS CRÍTICOS PARA LAS LÍNEAS DE TIEMPO */
+        .stats-container {
+            width: 100%;
+            margin-top: 2rem;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        .section-title { font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem; }
+        .section-subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 1.5rem; }
+        
+        .timelines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .timeline-card {
+            background: #f8fafc;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .timeline-title { font-size: 0.9rem; font-weight: 700; color: #475569; margin-bottom: 1rem; text-transform: uppercase; }
+        
+        .dots-row {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            padding: 0.75rem;
+            border-radius: 2rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+        }
+        
+        .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .dot:hover { transform: scale(1.3); }
+        .dot.empty { background-color: #e2e8f0; }
+
+        /* Tooltip */
+        .dot .tooltip {
+            visibility: hidden;
+            width: 100px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 4px;
+            position: absolute;
+            z-index: 10;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dot:hover .tooltip { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="user-info">
+                <span>Bienvenido de nuevo,</span>
+                <h2>{{ user.nombre }}</h2>
+                <div class="last-badge">
+                    <i class="fas fa-history"></i> Última comida: {{ ultima }}
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="/editar_perfil" class="btn-submit" style="background: rgba(255,255,255,0.1); margin-right: 1rem; text-decoration: none;">
+                    <i class="fas fa-user-cog"></i> Mi Perfil
+                </a>
+                <a href="/logout" class="btn-submit" style="background: #ef4444; text-decoration: none;">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="welcome-text">
+                <h1 style="font-size: 2.5rem; color: var(--dark);">¿Qué cocinaremos hoy?</h1>
+                <p style="color: var(--primary-dark); font-weight: 600;">{{ fecha }} | {{ user.ubicacion_actual }}, Perú</p>
+            </section>
+
+            <form action="/recomendar" method="POST" class="grid-menu">
+                <button type="submit" name="momento" value="Desayuno" class="card-btn">
+                    <i class="fas fa-coffee" style="color: #f59e0b;"></i>
+                    <span>Desayuno</span>
+                    <small>Energía para empezar</small>
+                </button>
+
+                <button type="submit" name="momento" value="Almuerzo" class="card-btn">
+                    <i class="fas fa-utensils" style="color: #10b981;"></i>
+                    <span>Almuerzo</span>
+                    <small>El plato fuerte</small>
+                </button>
+
+                <button type="submit" name="momento" value="Cena" class="card-btn">
+                    <i class="fas fa-moon" style="color: #6366f1;"></i>
+                    <span>Cena</span>
+                    <small>Algo ligero y rico</small>
+                </button>
+
+                <button type="submit" name="momento" value="Snack" class="card-btn">
+                    <i class="fas fa-apple-alt" style="color: #ef4444;"></i>
+                    <span>Snack</span>
+                    <small>Para el antojo</small>
+                </button>
+            </form>
+
+            <div style="--dynamic-color: {{ imc_color | default('#ccc') }};">
+                <section class="stats-footer" style="margin-top: 3rem; display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; padding: 2rem; background: var(--light); border-radius: 1.5rem; border-bottom: 5px solid var(--dynamic-color);">
+                    <div style="border-right: 1px solid #ddd;">
+                        <i class="fas fa-weight" style="color: var(--dark);"></i>
+                        <p style="font-size: 0.8rem; color: #888;">PESO / ALTURA</p>
+                        <strong>{{ user.peso_kg }} kg / {{ user.altura_m }} m</strong>
+                    </div>
+                    <div style="border-right: 1px solid #ddd;">
+                        <i class="fas fa-calculator" style="color: var(--primary);"></i>
+                        <p style="font-size: 0.8rem; color: #888;">MI IMC</p>
+                        <strong style="color: var(--primary);">{{ imc }}</strong>
+                    </div>
+                    <div style="border-right: 1px solid #ddd;">
+                        <i class="fas fa-heartbeat" style="color: var(--dynamic-color);"></i>
+                        <p style="font-size: 0.8rem; color: #888;">ESTADO</p>
+                        <strong style="color: var(--dynamic-color);">{{ imc_cat }}</strong>
+                    </div>
+                    <div style="border-right: 1px solid #ddd;">
+                        <i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>
+                        <p style="font-size: 0.8rem; color: #888;">ALERGIAS</p>
+                        <strong style="color: #ef4444;">{{ alergia }}</strong>
+                    </div>
+                    <div>
+                        <i class="fas fa-seedling" style="color: var(--primary-dark);"></i>
+                        <p style="font-size: 0.8rem; color: #888;">DIETA</p>
+                        <strong>{{ user.preferencia_dieta }}</strong>
+                    </div>
+                </section>
+            </div>
+
+            <div class="stats-container">
+                <h2 class="section-title">Tu Disciplina Semanal</h2>
+                <p class="section-subtitle">
+                    <span style="color: #2ECC71">●</span> Sugerido | 
+                    <span style="color: #F1C40F">●</span> Secundario | 
+                    <span style="color: #FF4B4B">●</span> No registrado
+                </p>
+
+                <div class="timelines-grid">
+                    {% for momento, puntos in lineas.items() %}
+                    <div class="timeline-card">
+                        <h3 class="timeline-title">{{ momento }}</h3>
+                        <div class="dots-row">
+                            {% for p in puntos %}
+                            <div class="dot" style="background-color: {{ p.color }};">
+                                <span class="tooltip">{{ p.plato }}</span>
+                            </div>
+                            {% endfor %}
+                            {% for i in range(7 - puntos|length) %}
+                            <div class="dot empty"></div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

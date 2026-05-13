@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chef IA - Preparación</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="user-info">
+                <h2>Preparando plato</h2>
+                <p>{{ plato.nombre_plato }}</p>
+            </div>
+        </header>
+        <main class="main-content">
+            <div style="text-align: left; background: var(--light); padding: 3rem; border-radius: 2rem; border-left: 10px solid var(--primary);">
+                <h1 style="color: var(--dark);">{{ plato.nombre_plato }}</h1>
+                <p style="font-size: 1.2rem; color: var(--text-muted);">Dificultad: {{ plato.dificultad }}</p>
+                <hr style="margin: 2rem 0; border: 1px solid #e5e7eb;">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-list-ol"></i> Instrucciones:</h3>
+                <p style="line-height: 1.8; font-size: 1.1rem;">{{ plato.instrucciones }}</p>
+            </div>
+
+            <form action="/registrar_consumo" method="POST" style="margin-top: 3rem;">
+                <input type="hidden" name="id_comida" value="{{ plato.id_comida }}">
+                <input type="hidden" name="tipo_sug" value="{{ tipo }}">
+                <button type="submit" class="btn-submit" style="width: 100%; font-size: 1.5rem;">
+                    <i class="fas fa-check-double"></i> Marcar como consumido
+                </button>
+            </form>
+            <br>
+            <a href="/dashboard" style="color: var(--text-muted); text-decoration: none;">Cancelar y volver al inicio</a>
+        </main>
+    </div>
+</body>
+</html>

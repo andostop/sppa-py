@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef IA - Mi Perfil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="user-info">
+                <h2>Ajustes de Perfil</h2>
+                <p>Personaliza tu experiencia culinaria</p>
+            </div>
+            <a href="/dashboard" class="btn-submit" style="background: rgba(255,255,255,0.1); text-decoration: none;">
+                <i class="fas fa-times"></i>
+            </a>
+        </header>
+
+        <main class="main-content">
+            <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+                <form action="/actualizar_perfil" method="POST">
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="color: var(--dark); margin-bottom: 1rem;"><i class="fas fa-user-circle"></i> Datos Personales</h3>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Nombre de usuario:</label>
+                            <input type="text" value="{{ user.nombre }}" disabled style="background: #eee; cursor: not-allowed;">
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Peso actual (kg):</label>
+                                <input type="number" step="0.1" name="peso" value="{{ user.peso_kg }}" required>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Altura (m):</label>
+                                <input type="number" step="0.01" name="altura" value="{{ user.altura_m }}" required>
+                            </div>
+                        </div>
+
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Sexo:</label>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <label style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                                <input type="radio" name="sexo" value="M" {% if user.sexo == 'M' %}checked{% endif %}> Masculino
+                            </label>
+                            <label style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                                <input type="radio" name="sexo" value="F" {% if user.sexo == 'F' %}checked{% endif %}> Femenino
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="color: var(--dark); margin-bottom: 1rem;"><i class="fas fa-wallet"></i> Economía y Preferencias</h3>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Presupuesto Diario (S/):</label>
+                            <input type="number" step="0.50" name="presupuesto" value="{{ user.presupuesto_dia }}" required>
+                            <small style="color: #888;">Límite de costo para tus recomendaciones del día.</small>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="color: var(--dark); margin-bottom: 1rem;"><i class="fas fa-map-marker-alt"></i> Ubicación y Salud</h3>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Región Geográfica:</label>
+                            <select name="region">
+                                <option value="Costa" {% if user.ubicacion_actual == 'Costa' %}selected{% endif %}>Región Costa</option>
+                                <option value="Sierra" {% if user.ubicacion_actual == 'Sierra' %}selected{% endif %}>Región Sierra</option>
+                                <option value="Selva" {% if user.ubicacion_actual == 'Selva' %}selected{% endif %}>Región Selva</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Restricción Alimentaria (Alergia):</label>
+                            <select name="alergia">
+                                {% for a in alergias %}
+                                <option value="{{ a.id_alergia }}" {% if user.alergias_id == a.id_alergia %}selected{% endif %}>
+                                    {{ a.nombre_alergia }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small style="color: #ef4444;">Nota: La IA excluirá platos que contengan insumos prohibidos para ti.</small>
+                        </div>
+                    </div>
+
+                    <div style="padding-top: 2rem; border-top: 1px solid #eee;">
+                        <button type="submit" class="btn-submit" style="width: 100%; font-size: 1.2rem;">
+                            <i class="fas fa-save"></i> Guardar Cambios en mi Perfil
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chef IA - Registro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="user-info">
+                <h2>Bienvenido, {{ nombre }}</h2>
+                <p>Crea tu perfil nutricional para continuar</p>
+            </div>
+        </header>
+        <main class="main-content">
+            <form action="/completar_registro" method="POST" style="max-width: 500px; margin: 0 auto; text-align: left;">
+                <input type="hidden" name="nombre" value="{{ nombre }}">
+                
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 700;">Peso (kg):</label>
+                        <input type="number" name="peso" placeholder="Ej: 75.5" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 700;">Altura (m):</label>
+                        <input type="number" step="0.01" name="altura" placeholder="Ej: 1.80" required>
+                    </div>
+                </div>
+
+                <label style="font-weight: 700;">Sexo:</label>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; margin-top: 0.5rem;">
+                    <label style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                        <input type="radio" name="sexo" value="M" checked style="margin-right: 5px;"> Masculino
+                    </label>
+                    <label style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                        <input type="radio" name="sexo" value="F" style="margin-right: 5px;"> Femenino
+                    </label>
+                </div>
+
+                <label style="font-weight: 700;">Presupuesto Diario (S/):</label>
+                <input type="number" step="0.50" name="presupuesto" placeholder="Ej: 50.00" value="50.00" required style="margin-bottom: 1rem;">
+
+                <label style="font-weight: 700;">¿En qué región te encuentras?</label>
+                <select name="region" style="margin-bottom: 1rem;">
+                    <option value="Costa">Costa</option>
+                    <option value="Sierra">Sierra</option>
+                    <option value="Selva">Selva</option>
+                </select>
+
+                <label style="font-weight: 700;">¿Tienes alguna alergia?</label>
+                <select name="alergia">
+                    {% for a in alergias %}
+                    <option value="{{ a.id_alergia }}">{{ a.nombre_alergia }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn-submit" style="width: 100%; margin-top: 2rem;">
+                    Empezar mi aventura culinaria
+                </button>
+            </form>
+        </main>
+    </div>
+</body>
+</html>
