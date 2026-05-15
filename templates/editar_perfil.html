@@ -75,6 +75,47 @@
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
+
+                            <label style="display:block; font-weight:600; margin-bottom:0.5rem;">
+                                Insumos disponibles:
+                            </label>
+
+                            <input
+                                type="text"
+                                id="buscador-insumos"
+                                placeholder="Buscar insumos..."
+                                autocomplete="off"
+                            >
+
+                            <div id="resultados-insumos"
+                                style="
+                                    background:white;
+                                    border:1px solid #ddd;
+                                    border-radius:10px;
+                                    margin-top:5px;
+                                    max-height:200px;
+                                    overflow-y:auto;
+                                ">
+                            </div>
+
+                            <div id="insumos-seleccionados"
+                                style="
+                                    margin-top:15px;
+                                    display:flex;
+                                    flex-wrap:wrap;
+                                ">
+                            </div>
+
+                            <input
+                                type="hidden"
+                                name="insumos_ids"
+                                id="insumos_ids"
+                                value="{{ user.insumos_disponibles }}"
+                            >
+
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Restricción Alimentaria (Alergia):</label>
                             <select name="alergia">
                                 {% for a in alergias %}
@@ -97,5 +138,181 @@
             </div>
         </main>
     </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const insumos = JSON.parse('{{ insumos | tojson | safe }}');
+
+        const buscador = document.getElementById("buscador-insumos");
+        const resultados = document.getElementById("resultados-insumos");
+        const seleccionadosDiv = document.getElementById("insumos-seleccionados");
+        const hiddenInput = document.getElementById("insumos_ids");
+
+        let seleccionados = [];
+
+        // =========================
+        // CARGAR GUARDADOS
+        // =========================
+
+        const idsGuardados = (hiddenInput.value || "")
+            .split(",")
+            .map(x => x.trim())
+            .filter(x => x !== "");
+
+        seleccionados = insumos.filter(insumo =>
+            idsGuardados.includes(String(insumo.id_insumo))
+        );
+
+        renderSeleccionados();
+
+        // =========================
+        // BUSCADOR
+        // =========================
+
+        buscador.addEventListener("input", () => {
+
+            const texto = buscador.value.toLowerCase().trim();
+
+            resultados.innerHTML = "";
+
+            if(texto.length === 0){
+                resultados.style.display = "none";
+                return;
+            }
+
+            const filtrados = insumos.filter(insumo =>
+                insumo.nombre.toLowerCase().includes(texto)
+            );
+
+            if(filtrados.length === 0){
+                resultados.style.display = "none";
+                return;
+            }
+
+            resultados.style.display = "block";
+
+            filtrados.slice(0, 10).forEach(insumo => {
+
+                const item = document.createElement("div");
+
+                item.textContent = insumo.nombre;
+
+                item.style.padding = "10px";
+                item.style.cursor = "pointer";
+                item.style.borderBottom = "1px solid #eee";
+
+                item.addEventListener("mouseenter", () => {
+                    item.style.background = "#f3f4f6";
+                });
+
+                item.addEventListener("mouseleave", () => {
+                    item.style.background = "white";
+                });
+
+                item.addEventListener("click", () => {
+                    agregarInsumo(insumo);
+                });
+
+                resultados.appendChild(item);
+
+            });
+
+        });
+
+        // =========================
+        // AGREGAR
+        // =========================
+
+        function agregarInsumo(insumo){
+
+            const existe = seleccionados.some(i =>
+                String(i.id_insumo) === String(insumo.id_insumo)
+            );
+
+            if(existe){
+                buscador.value = "";
+                resultados.style.display = "none";
+                return;
+            }
+
+            seleccionados.push(insumo);
+
+            renderSeleccionados();
+
+            buscador.value = "";
+            resultados.innerHTML = "";
+            resultados.style.display = "none";
+        }
+
+        // =========================
+        // ELIMINAR
+        // =========================
+
+        function eliminarInsumo(id){
+
+            seleccionados = seleccionados.filter(insumo =>
+                String(insumo.id_insumo) !== String(id)
+            );
+
+            renderSeleccionados();
+        }
+
+        // =========================
+        // RENDER
+        // =========================
+
+        function renderSeleccionados(){
+
+            seleccionadosDiv.innerHTML = "";
+
+            seleccionados.forEach(insumo => {
+
+                const tag = document.createElement("div");
+
+                tag.style.display = "flex";
+                tag.style.alignItems = "center";
+                tag.style.gap = "8px";
+
+                tag.style.background = "#e5e7eb";
+                tag.style.padding = "8px 14px";
+                tag.style.borderRadius = "999px";
+
+                const texto = document.createElement("span");
+
+                texto.textContent = insumo.nombre;
+
+                const btn = document.createElement("button");
+
+                btn.type = "button";
+                btn.textContent = "×";
+
+                btn.style.background = "#ef4444";
+                btn.style.color = "white";
+                btn.style.border = "none";
+                btn.style.width = "22px";
+                btn.style.height = "22px";
+                btn.style.borderRadius = "50%";
+                btn.style.cursor = "pointer";
+
+                btn.addEventListener("click", () => {
+                    eliminarInsumo(insumo.id_insumo);
+                });
+
+                tag.appendChild(texto);
+                tag.appendChild(btn);
+
+                seleccionadosDiv.appendChild(tag);
+            });
+
+            hiddenInput.value = seleccionados
+                .map(i => i.id_insumo)
+                .join(",");
+        }
+
+    });
+
+
+    </script>
+
 </body>
 </html>
