@@ -16,6 +16,7 @@ EXCEL_PATH = 'Database_ChefIA.xlsx'
 
 IA_ACTIVA = False
 RL_ACTIVO = False
+INGREDIENTES_ACTIVO = False
 
 # IA nutricional
 try:
@@ -44,6 +45,25 @@ try:
 except Exception as e:
     RL_ACTIVO = False
     print("Modelo presupuesto no cargado:", e)
+
+# =========================
+# IA INGREDIENTES
+# =========================
+
+try:
+    modelo_ingredientes = joblib.load(
+        'modelo_ingredientes.pkl'
+    )
+
+    INGREDIENTES_ACTIVO = True
+
+    print("Modelo ingredientes cargado")
+
+except Exception as e:
+
+    INGREDIENTES_ACTIVO = False
+
+    print("No se cargó modelo ingredientes:", e)
 
 # =========================
 # UTILIDADES
@@ -81,6 +101,49 @@ def calcular_costo_plato(insumos_str, df_insumos):
         return round(precios.sum(), 2)
     except:
         return 0.0
+
+def tiene_ingredientes_necesarios(
+    plato_ids,
+    user_ids
+):
+
+    try:
+
+        ids_plato = set(
+            int(x)
+            for x in re.findall(
+                r'\d+',
+                str(plato_ids)
+            )
+        )
+
+        ids_user = set(
+            int(x)
+            for x in re.findall(
+                r'\d+',
+                str(user_ids)
+            )
+        )
+
+        if len(ids_plato) == 0:
+            return False
+
+        coincidencias = ids_plato.intersection(
+            ids_user
+        )
+
+        porcentaje = (
+            len(coincidencias)
+            / len(ids_plato)
+        )
+
+        # mínimo 40% de ingredientes
+        return porcentaje >= 0.4
+
+    except:
+        return False
+    
+
 
 # =========================
 # IA ORIGINAL
@@ -150,6 +213,55 @@ def score_presupuesto(usuario, plato):
         return 0
 
 # =========================
+# IA INGREDIENTES
+# =========================
+
+def score_ingredientes(usuario, plato):
+
+    if not INGREDIENTES_ACTIVO:
+        return 0
+
+    try:
+
+        ingredientes = str(
+            usuario.get(
+                'insumos_disponibles',
+                ''
+            )
+        )
+
+        horario = str(
+            plato['horario']
+        ).strip()
+
+        key = (
+            ingredientes,
+            horario
+        )
+
+        id_plato = int(
+            plato['id_comida']
+        )
+
+        if key in modelo_ingredientes:
+
+            return modelo_ingredientes[key].get(
+                id_plato,
+                0
+            )
+
+        return 0
+
+    except Exception as e:
+
+        print(
+            "score_ingredientes:",
+            e
+        )
+
+        return 0
+
+# =========================
 # LOGIN
 # =========================
 
@@ -167,7 +279,17 @@ def auth():
         return redirect(url_for('dashboard'))
 
     alergias_list = BD['ALERGIAS'].to_dict('records')
-    return render_template('registro_perfil.html', nombre=nombre, alergias=alergias_list)
+
+    insumos_list = BD['INSUMOS'][['id_insumo', 'nombre']] \
+    .dropna() \
+    .to_dict('records')
+
+    return render_template(
+        'registro_perfil.html',
+        nombre=nombre,
+        alergias=alergias_list,
+        insumos=insumos_list
+    )
 
 # =========================
 # REGISTRO
@@ -190,7 +312,8 @@ def completar_registro():
         'preferencia_dieta': 'Equilibrada',
         'edad': 25,
         'sexo': request.form.get('sexo', 'M'),
-        'presupuesto_dia': float(request.form.get('presupuesto', 50))
+        'presupuesto_dia': float(request.form.get('presupuesto', 50)),
+        'insumos_disponibles': request.form.get('insumos_ids', '')
     }
 
     BD['USUARIOS'] = pd.concat([BD['USUARIOS'], pd.DataFrame([nueva_fila])], ignore_index=True)
@@ -218,7 +341,16 @@ def editar_perfil():
     user = user_row.iloc[0]
     alergias_list = BD['ALERGIAS'].to_dict('records')
 
-    return render_template('editar_perfil.html', user=user, alergias=alergias_list)
+    insumos_list = BD['INSUMOS'][['id_insumo', 'nombre']] \
+        .dropna() \
+        .to_dict('records')
+
+    return render_template(
+        'editar_perfil.html',
+        user=user,
+        alergias=alergias_list,
+        insumos=insumos_list
+    )
 
 @app.route('/actualizar_perfil', methods=['POST'])
 def actualizar_perfil():
@@ -247,6 +379,7 @@ def actualizar_perfil():
         BD['USUARIOS'].at[idx, 'alergias_id'] = int(request.form.get('alergia', 0))
         BD['USUARIOS'].at[idx, 'sexo'] = request.form.get('sexo', 'M')
         BD['USUARIOS'].at[idx, 'presupuesto_dia'] = float(request.form.get('presupuesto', 50))
+        BD['USUARIOS'].at[idx, 'insumos_disponibles'] = request.form.get('insumos_ids', '')
 
         save_db(BD)
 
@@ -387,6 +520,30 @@ def recomendar():
             lambda x: es_plato_seguro_interno(x, user['alergias_id'])
         )].copy()
 
+        # ====================================
+        # FILTRO POR INGREDIENTES DISPONIBLES
+        # ====================================
+
+        if INGREDIENTES_ACTIVO:
+
+            aptos_filtrados = aptos[
+                    aptos['insumos_base_ids'].apply(
+                        lambda x:
+                        tiene_ingredientes_necesarios(
+                            x,
+                            user.get(
+                                'insumos_disponibles',
+                                ''
+                            )
+                        )
+                    )
+            ].copy()
+
+            # SOLO usar filtro si encontró platos
+            if not aptos_filtrados.empty:
+
+                aptos = aptos_filtrados
+
         aptos['id_str'] = aptos['id_comida'].astype(str).str.replace('.0', '').str.strip()
 
         aptos = aptos[~aptos['id_str'].isin(lista_bloqueo)].copy()
@@ -394,6 +551,8 @@ def recomendar():
         aptos['costo_estimado'] = aptos['insumos_base_ids'].apply(
             lambda x: calcular_costo_plato(x, BD['INSUMOS'])
         )
+
+        
 
         def motor_ia(fila):
             puntos = 0
@@ -412,6 +571,7 @@ def recomendar():
            
             puntos += score_ia(user, fila)
             puntos += score_presupuesto(user, fila)
+            puntos += score_ingredientes(user, fila)
 
             puntos += random.randint(0, 30)
 
