@@ -49,6 +49,58 @@
                     <option value="Selva">Selva</option>
                 </select>
 
+                <!-- INSUMOS FAVORITOS -->
+                <label style="font-weight: 700;">
+                    Ingredientes o insumos que tienes disponible
+                </label>
+
+                <div style="position: relative; margin-top: 0.5rem; margin-bottom: 1rem;">
+
+                    <input
+                        type="text"
+                        id="buscador-insumos"
+                        placeholder="Ej: arroz, pollo, palta..."
+                        autocomplete="off"
+                    >
+
+                    <!-- RESULTADOS -->
+                    <div id="resultados-insumos" style="
+                        position: absolute;
+                        top: 100%;
+                        left: 0;
+                        right: 0;
+
+                        background: white;
+                        border: 1px solid #ddd;
+
+                        border-radius: 12px;
+
+                        max-height: 220px;
+                        overflow-y: auto;
+
+                        z-index: 999;
+
+                        display: none;
+
+                        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+                    ">
+
+                    </div>
+
+                </div>
+
+                <!-- INSUMOS SELECCIONADOS -->
+                <div id="insumos-seleccionados" style="
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+
+                    margin-bottom: 1.5rem;
+                ">
+                </div>
+                <!-- **** -->
+                <input type="hidden" name="insumos_ids" id="insumos_ids">
+
                 <label style="font-weight: 700;">¿Tienes alguna alergia?</label>
                 <select name="alergia">
                     {% for a in alergias %}
@@ -62,5 +114,138 @@
             </form>
         </main>
     </div>
+
+    <script>
+        const insumos = JSON.parse('{{ insumos | tojson | safe }}');
+
+        const buscador = document.getElementById("buscador-insumos");
+        const resultados = document.getElementById("resultados-insumos");
+        const seleccionadosDiv = document.getElementById("insumos-seleccionados");
+        const hiddenInput = document.getElementById("insumos_ids");
+
+        let seleccionados = [];
+
+        buscador.addEventListener("input", () => {
+
+            const texto = buscador.value.toLowerCase().trim();
+
+            resultados.innerHTML = "";
+
+            if(texto.length === 0){
+                resultados.style.display = "none";
+                return;
+            }
+
+            const filtrados = insumos.filter(insumo =>
+                insumo.nombre.toLowerCase().includes(texto)
+            );
+
+            if(filtrados.length === 0){
+                resultados.style.display = "none";
+                return;
+            }
+
+            resultados.style.display = "block";
+
+            filtrados.slice(0, 10).forEach(insumo => {
+
+                const item = document.createElement("div");
+
+                item.innerHTML = insumo.nombre;
+
+                item.style.padding = "10px";
+                item.style.cursor = "pointer";
+
+                item.onmouseenter = () => {
+                    item.style.background = "#f3f4f6";
+                };
+
+                item.onmouseleave = () => {
+                    item.style.background = "white";
+                };
+
+                item.onclick = () => agregarInsumo(insumo);
+
+                resultados.appendChild(item);
+            });
+
+        });
+
+        function agregarInsumo(insumo){
+
+            const existe = seleccionados.some(i =>
+                i.id_insumo == insumo.id_insumo
+            );
+
+            if(existe){
+                buscador.value = "";
+                resultados.style.display = "none";
+                return;
+            }
+
+            seleccionados.push(insumo);
+
+            renderSeleccionados();
+
+            buscador.value = "";
+
+            resultados.style.display = "none";
+        }
+
+        function eliminarInsumo(id){
+
+            seleccionados = seleccionados.filter(i =>
+                i.id_insumo != id
+            );
+
+            renderSeleccionados();
+        }
+
+        function renderSeleccionados(){
+
+            seleccionadosDiv.innerHTML = "";
+
+            seleccionados.forEach(insumo => {
+
+                const tag = document.createElement("div");
+
+                tag.style.display = "flex";
+                tag.style.alignItems = "center";
+                tag.style.gap = "8px";
+
+                tag.style.background = "#e5e7eb";
+                tag.style.padding = "8px 14px";
+                tag.style.borderRadius = "999px";
+
+                tag.innerHTML = `
+                    <span>${insumo.nombre}</span>
+
+                    <button
+                        type="button"
+                        onclick="eliminarInsumo(${insumo.id_insumo})"
+                        style="
+                            background: #ef4444;
+                            color: white;
+                            border: none;
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 50%;
+                            cursor: pointer;
+                            font-size: 12px;
+                        "
+                    >
+                        ×
+                    </button>
+                `;
+
+                seleccionadosDiv.appendChild(tag);
+            });
+
+            hiddenInput.value = seleccionados
+                .map(i => i.id_insumo)
+                .join(",");
+        }
+
+</script>
 </body>
 </html>
