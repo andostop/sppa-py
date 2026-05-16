@@ -63,3 +63,27 @@ input:focus { border-color: var(--primary); }
         transform: translateY(0px);
     }
 }
+
+.verde{
+    border: 3px solid #22c55e;
+    background: #dcfce7;
+}
+
+.naranja{
+    border: 3px solid #f59e0b;
+    background: #ffedd5;
+}
+
+.texto-ingrediente{
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.texto-ingrediente.verde{
+    color: #16a34a;
+}
+
+.texto-ingrediente.naranja{
+    color: #ea580c;
+}
