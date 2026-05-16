@@ -143,7 +143,26 @@ def tiene_ingredientes_necesarios(
     except:
         return False
     
+def contar_coincidencias(plato_ids, user_ids):
 
+    try:
+
+        ids_plato = set(
+            int(x)
+            for x in re.findall(r'\d+', str(plato_ids))
+        )
+
+        ids_user = set(
+            int(x)
+            for x in re.findall(r'\d+', str(user_ids))
+        )
+
+        return len(
+            ids_plato.intersection(ids_user)
+        )
+
+    except:
+        return 0
 
 # =========================
 # IA ORIGINAL
@@ -521,28 +540,20 @@ def recomendar():
         )].copy()
 
         # ====================================
-        # FILTRO POR INGREDIENTES DISPONIBLES
+        # COINCIDENCIA DE INGREDIENTES
         # ====================================
 
-        if INGREDIENTES_ACTIVO:
-
-            aptos_filtrados = aptos[
-                    aptos['insumos_base_ids'].apply(
-                        lambda x:
-                        tiene_ingredientes_necesarios(
-                            x,
-                            user.get(
-                                'insumos_disponibles',
-                                ''
-                            )
-                        )
-                    )
-            ].copy()
-
-            # SOLO usar filtro si encontró platos
-            if not aptos_filtrados.empty:
-
-                aptos = aptos_filtrados
+        aptos['coincide_ingredientes'] = aptos[
+            'insumos_base_ids'
+        ].apply(
+            lambda x: tiene_ingredientes_necesarios(
+                x,
+                user.get(
+                    'insumos_disponibles',
+                    ''
+                )
+            )
+        )
 
         aptos['id_str'] = aptos['id_comida'].astype(str).str.replace('.0', '').str.strip()
 
@@ -573,6 +584,18 @@ def recomendar():
             puntos += score_presupuesto(user, fila)
             puntos += score_ingredientes(user, fila)
 
+            # =========================
+            # PRIORIDAD INGREDIENTES
+            # =========================
+
+            coincidencias = contar_coincidencias(
+                fila['insumos_base_ids'],
+                user.get('insumos_disponibles', '')
+            )
+
+            # MUCHOS puntos por coincidencia
+            puntos += coincidencias * 120
+
             puntos += random.randint(0, 30)
 
             return puntos
@@ -590,7 +613,40 @@ def recomendar():
 
         secundarias = []
 
-        otros_df = pool_final.iloc[1:4].copy()
+        otros_df = pool_final.copy()
+
+        # quitar principal
+        otros_df = otros_df.iloc[1:]
+
+        # primero compatibles
+        otros_df = otros_df.sort_values(
+            by='coincide_ingredientes',
+            ascending=False
+        )
+
+        # ====================================
+        # ASEGURAR SIEMPRE 3 SECUNDARIOS
+        # ====================================
+
+        if len(otros_df) < 3:
+
+            faltan = 3 - len(otros_df)
+
+            extras = pool_final.copy()
+
+            # quitar principal
+            extras = extras.iloc[1:]
+
+            # repetir algunos
+            extras = extras.head(faltan)
+
+            otros_df = pd.concat(
+                [otros_df, extras],
+                ignore_index=True
+            )
+
+        # tomar máximo 3
+        otros_df = otros_df.head(3)
 
         if not otros_df.empty:
             id_plato_saludable = otros_df['calorias_totales'].idxmin()
@@ -600,6 +656,18 @@ def recomendar():
                 item['es_saludable'] = (idx == id_plato_saludable)
                 item['sobrepasa_presupuesto'] = item['costo_estimado'] > presupuesto_user
                 item['tipo_sug'] = 'secundario'
+                item['color_ingrediente'] = (
+                    'verde'
+                    if item['coincide_ingredientes']
+                    else 'naranja'
+                )
+
+                item['texto_ingrediente'] = (
+                '✓ Tienes los ingredientes'
+                if item['coincide_ingredientes']
+                else 'No tienes suficientes ingredientes'
+)
+
                 secundarias.append(item)
 
         return render_template(
